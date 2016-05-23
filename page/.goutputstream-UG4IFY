@@ -1,0 +1,200 @@
+/*
+ * File: pager-lru.c
+ * Author:       Andy Sayler
+ *               http://www.andysayler.com
+ * Adopted From: Dr. Alva Couch
+		helped by William Spencer
+ *               http://www.cs.tufts.edu/~couch/
+ *
+ * Project: CSCI 3753 Programming Assignment 4
+ * Create Date: Unknown
+ * Modify Date: 2012/04/03
+ * Description:
+ * 	This file contains an lru pageit
+ *      implmentation.
+ */
+
+#include <stdio.h> 
+#include <stdlib.h>
+//#include <queue.h>
+#include "simulator.h"
+#include  <limits.h>
+static int WINDOW=250;
+static int timestamps[MAXPROCESSES][MAXPROCPAGES];
+static int pageLastRemovedAt[MAXPROCESSES][MAXPROCPAGES];
+
+static int tick;
+static int prevtick;
+static int numberofpagesout=0;
+void effChecker(int z, int page){
+	int curOut=pageLastRemovedAt[z][page];
+	int y;
+	int in=0;
+	int mtick=0;
+	    for(y=0; y < MAXPROCPAGES; y++){
+		if(y!=page && timestamps[z][y]>mtick){
+			mtick=timestamps[z][y];
+		}
+		if(timestamps[z][y]!=0 && timestamps[z][y]<curOut){
+			
+			if(tick-100>prevtick){prevtick=tick;}
+			printf("cur tick is: %i\n",tick);
+			printf("inefficent proc is %i and page is %i\n",z,page);
+			printf("page that should have been removed is %i\n\n",y);
+			printf("that pages tick is: %i\n",timestamps[z][y]);
+			in=1;
+			
+		}
+	    }
+	if(in==1){
+		printf("The max tick was: %i\n",mtick);
+		//getchar();
+	}
+
+}
+
+
+void pager(Pentry q[MAXPROCESSES]){
+	int f;
+	int t;
+	int min=INT_MAX;
+	int minI=0;
+	int max=0;
+	int maxI=0;
+
+	for(f=0;f<MAXPROCESSES;f++){
+
+		for(t=0;t<MAXPROCPAGES;t++){
+			if(!q[f].pages[t]){
+			if(timestamps[f][t]<min){
+				min=timestamps[f][t];
+				minI=t;
+
+			}
+			if(timestamps[f][t]>max){
+				max=timestamps[f][t];
+				maxI=t;
+
+
+			}}
+			
+		}
+		if(max-min>WINDOW){
+			pageout(f,minI);
+			pageLastRemovedAt[f][minI]=tick;
+		}
+		max=0;
+		minI=0;
+		maxI=0;
+		min=INT_MAX;
+	}
+
+}
+
+void pageit(Pentry q[MAXPROCESSES]) { 
+
+    /* This file contains the stub for an LRU pager */
+    /* You may need to add/remove/modify any part of this file */
+	//printf("%ld",processes[0]->pid);
+    /* Static vars */
+    static int initialized = 0;
+    //static int tick = 1; // artificial time
+    
+	//printf("here\n");
+    /* Local vars */
+    int proctmp;
+    int pagetmp;
+	int pc;
+	int page;
+	int min;
+
+
+		int swapRow=0;
+		int swapCol=0;
+		int tmppage;
+		int proc;
+    /* initialize static vars on first run */
+    if(!initialized){
+	for(proctmp=0; proctmp < MAXPROCESSES; proctmp++){
+	    for(pagetmp=0; pagetmp < MAXPROCPAGES; pagetmp++){
+				timestamps[proctmp][pagetmp] = 0;
+				pageLastRemovedAt[proctmp][pagetmp]=0; 
+				numberofpagesout=0;
+	    }
+	}
+	tick=1;
+	prevtick=0;
+	initialized = 1;
+    }
+    
+	
+	//pager();
+	for(proc=0; proc <MAXPROCESSES; proc++){
+		//printf("1\n");	
+		if(q[proc].active){
+			
+			//printf("2\n");
+			pc = q[proc].pc;
+			page=pc/PAGESIZE;
+
+			timestamps[proc][page] = tick;
+
+			if(!q[proc].pages[page]){
+				//printf("333333333333333333333\n");
+				//effChecker(proc,page);
+				if(!pagein(proc,page)){
+					//printf("44444444444444444444444444444444444444\n");
+					//getchar();
+					min=INT_MAX;
+					int minIndex=0;
+
+					//printf("now\n");
+	   			 	for(pagetmp=0; pagetmp < MAXPROCPAGES; pagetmp++){
+						//printf("now3\n");
+						if((page!= pagetmp) && (timestamps[proc][pagetmp]>0) && (timestamps[proc][pagetmp]<min)){
+
+							min=timestamps[proc][pagetmp];
+
+							minIndex=pagetmp;
+
+
+						}
+					}
+					pageLastRemovedAt[proc][minIndex]=tick;
+					if(pageout(proc,minIndex)){
+						
+						printf("pagineg out %i\n",minIndex);
+						timestamps[proc][minIndex]=0;
+						//break;
+						//printf("awwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww %i\n",minIndex);
+						//if(!pagein(proc,page)){
+							//printf("failed");
+							//getchar(); 
+						//}else{
+							//printf("suc\n");getchar();break;
+						//}
+						printf("here");
+						//getchar();
+					}
+						
+				}/*else{
+					break;
+					printf("test\n");//getchar();
+				}*/
+			}
+			//come back
+				
+
+
+		}
+ 		
+	}
+
+
+
+    /* TODO: Implement LRU Paging */
+	pager(q);
+
+    /* advance time for next pageit iteration */
+    tick++;
+} 

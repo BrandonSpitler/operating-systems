@@ -1,0 +1,8 @@
+obj-m += Simple_Char_Driver.o
+
+all:
+	##make -C /lib/modules/$(uname -r)/build M=$PWD modules
+	$(CC) tester.c -o test
+clean:
+	make -C /lib/modules/$(uname -r)/build M=$PWD clean
+
